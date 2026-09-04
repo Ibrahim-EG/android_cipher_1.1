@@ -76,9 +76,11 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shadow
+import androidx.compose.ui.graphics.drawscope.withTransform
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalClipboardManager
@@ -198,26 +200,26 @@ fun PremiumBackground(content: @Composable () -> Unit) {
                 center = center2
             )
 
-            translate(
-                left = size.width * shine - size.width * 0.25f,
-                top = -size.height * 0.2f
-            ) {
-                rotate(degrees = 18f, pivot = Offset.Zero) {
-                    drawRect(
-                        left = 0f,
-                        top = 0f,
-                        right = size.width * 0.28f,
-                        bottom = size.height * 1.8f,
-                        brush = Brush.linearGradient(
-                            colors = listOf(
-                                Color.Transparent,
-                                Color(0x10FFFFFF),
-                                Color(0x14FFD700),
-                                Color.Transparent
-                            )
+            // Fixed: Use withTransform for rotation/translation and topLeft/size for drawRect
+            withTransform({
+                translate(
+                    left = size.width * shine - size.width * 0.25f,
+                    top = -size.height * 0.2f
+                )
+                rotate(degrees = 18f, pivot = Offset.Zero)
+            }) {
+                drawRect(
+                    brush = Brush.linearGradient(
+                        colors = listOf(
+                            Color.Transparent,
+                            Color(0x10FFFFFF),
+                            Color(0x14FFD700),
+                            Color.Transparent
                         )
-                    )
-                }
+                    ),
+                    topLeft = Offset.Zero,
+                    size = Size(size.width * 0.28f, size.height * 1.8f)
+                )
             }
         }
 
