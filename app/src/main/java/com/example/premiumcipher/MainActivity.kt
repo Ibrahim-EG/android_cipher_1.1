@@ -44,6 +44,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
@@ -79,16 +80,13 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.Shadow
 import androidx.compose.ui.graphics.drawscope.withTransform
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.AnnotatedString
-import androidx.compose.ui.text.TextStyle
-import androidx.compose.ui.text.font.FontFamily
-import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.Dp
@@ -102,6 +100,7 @@ val Gold = Color(0xFFFFD700)
 val GoldDim = Color(0xFFB8860B)
 val Silver = Color(0xFFE8E8E8)
 val Danger = Color(0xFFFF6B6B)
+val Warning = Color(0xFFFFB300)
 
 class MainActivity : ComponentActivity() {
 
@@ -200,7 +199,6 @@ fun PremiumBackground(content: @Composable () -> Unit) {
                 center = center2
             )
 
-            // Fixed: Use withTransform for rotation/translation and topLeft/size for drawRect
             withTransform({
                 translate(
                     left = size.width * shine - size.width * 0.25f,
@@ -473,6 +471,7 @@ fun GoldPasswordField(
             ),
         singleLine = true,
         visualTransformation = if (show) VisualTransformation.None else PasswordVisualTransformation(),
+        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password), // Forces secure keyboard mode
         shape = RoundedCornerShape(14.dp),
         interactionSource = interactionSource,
         colors = OutlinedTextFieldDefaults.colors(
@@ -575,6 +574,8 @@ fun SetupScreen(viewModel: MainViewModel) {
 
     val scope = rememberCoroutineScope()
     val shake = remember { Animatable(0f) }
+    
+    val isShort = CryptoEngine.passphraseLength(passphrase) < 12
 
     fun triggerShake() {
         scope.launch {
@@ -654,21 +655,29 @@ fun SetupScreen(viewModel: MainViewModel) {
 
                     Spacer(Modifier.height(10.dp))
 
+                    if (isShort && passphrase.isNotEmpty()) {
+                        Text(
+                            text = "⚠ Warning: Short passphrase. 12+ characters recommended.",
+                            color = Warning,
+                            fontSize = 13.sp
+                        )
+                        Spacer(Modifier.height(8.dp))
+                    }
+
                     error?.let {
                         Text(
                             text = it,
                             color = Danger,
                             fontSize = 13.sp
                         )
-
                         Spacer(Modifier.height(8.dp))
                     }
 
                     GoldButton(
                         text = "Unlock",
                         onClick = {
-                            if (!CryptoEngine.passphraseMeetsPolicy(passphrase)) {
-                                error = "Passphrase must contain at least 12 characters."
+                            if (passphrase.isEmpty()) {
+                                error = "Passphrase cannot be empty."
                                 triggerShake()
                             } else if (!CryptoEngine.passphraseEquals(passphrase, confirm)) {
                                 error = "Passphrases do not match."
@@ -683,6 +692,13 @@ fun SetupScreen(viewModel: MainViewModel) {
                     )
                 }
             }
+            
+            Spacer(Modifier.height(24.dp))
+            Text(
+                text = "Developed by Ibrahim Khaled",
+                color = Color(0xFF666666),
+                fontSize = 12.sp
+            )
         }
     }
 }
@@ -820,6 +836,15 @@ fun MainScreen(viewModel: MainViewModel) {
                         }
                     }
                 }
+                
+                Spacer(Modifier.height(24.dp))
+                Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
+                    Text(
+                        text = "Developed by Ibrahim Khaled",
+                        color = Color(0xFF666666),
+                        fontSize = 12.sp
+                    )
+                }
             }
         }
     }
@@ -888,6 +913,8 @@ fun EncryptPanel(
 
                             output = token
                             showMessage("Encryption complete")
+                        } catch (e: OutOfMemoryError) {
+                            showMessage("Device ran out of memory during encryption.")
                         } catch (e: CryptoException) {
                             showMessage(e.message ?: "Encryption failed")
                         } catch (e: Exception) {
@@ -995,6 +1022,8 @@ fun DecryptPanel(
 
                             output = plaintext
                             showMessage("Decryption complete")
+                        } catch (e: OutOfMemoryError) {
+                            showMessage("Not enough memory to decrypt this legacy token.")
                         } catch (e: CryptoException) {
                             showMessage(e.message ?: "Invalid passphrase or corrupted data")
                         } catch (e: Exception) {
