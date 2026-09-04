@@ -66,6 +66,7 @@ import androidx.compose.material3.TabRow
 import androidx.compose.material3.Text
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -95,6 +96,7 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
@@ -224,6 +226,93 @@ fun PremiumBackground(content: @Composable () -> Unit) {
         }
 
         content()
+    }
+}
+
+@Composable
+fun PremiumProcessingOverlay(isVisible: Boolean, mode: String) {
+    AnimatedVisibility(
+        visible = isVisible,
+        enter = fadeIn(tween(400)),
+        exit = fadeOut(tween(400))
+    ) {
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(Color(0xEE000000))
+                .clickable(
+                    enabled = true,
+                    indication = null,
+                    interactionSource = remember { MutableInteractionSource() },
+                    onClick = {} // Block touches
+                ),
+            contentAlignment = Alignment.Center
+        ) {
+            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                val transition = rememberInfiniteTransition(label = "vault")
+                val scale by transition.animateFloat(
+                    initialValue = 0.92f,
+                    targetValue = 1.08f,
+                    animationSpec = infiniteRepeatable(tween(1800, easing = LinearEasing), RepeatMode.Reverse)
+                )
+                val glow by transition.animateFloat(
+                    initialValue = 12f,
+                    targetValue = 36f,
+                    animationSpec = infiniteRepeatable(tween(1800, easing = LinearEasing), RepeatMode.Reverse)
+                )
+
+                Box(
+                    modifier = Modifier
+                        .size(100.dp)
+                        .graphicsLayer { scaleX = scale; scaleY = scale }
+                        .shadow(glow.dp, CircleShape, ambientColor = Gold, spotColor = Gold)
+                        .background(Color.Black, CircleShape)
+                        .border(2.dp, Gold, CircleShape),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        imageVector = Icons.Outlined.Lock,
+                        contentDescription = null,
+                        tint = Gold,
+                        modifier = Modifier.size(50.dp)
+                    )
+                }
+
+                Spacer(Modifier.height(32.dp))
+
+                Text(
+                    text = if (mode == "Encrypt") "Encrypting Securely..." else "Decrypting Securely...",
+                    color = Gold,
+                    fontSize = 22.sp,
+                    fontWeight = FontWeight.Bold
+                )
+
+                Spacer(Modifier.height(12.dp))
+
+                val messages = listOf(
+                    "Allocating secure memory...",
+                    "Deriving 256-bit AES key...",
+                    "Executing memory-hard Scrypt...",
+                    "Finalizing cryptographic payload..."
+                )
+                var msgIndex by remember { mutableStateOf(0) }
+                
+                LaunchedEffect(Unit) {
+                    while (true) {
+                        delay(2500)
+                        msgIndex = (msgIndex + 1) % messages.size
+                    }
+                }
+
+                Crossfade(targetState = msgIndex, animationSpec = tween(500)) { index ->
+                    Text(
+                        text = messages[index],
+                        color = Color(0xFFBDBDBD),
+                        fontSize = 14.sp
+                    )
+                }
+            }
+        }
     }
 }
 
@@ -546,27 +635,6 @@ fun OutputCard(
 }
 
 @Composable
-fun PremiumLoader() {
-    Box(
-        modifier = Modifier
-            .size(38.dp)
-            .shadow(
-                elevation = 14.dp,
-                shape = CircleShape,
-                ambientColor = Gold,
-                spotColor = Gold
-            ),
-        contentAlignment = Alignment.Center
-    ) {
-        CircularProgressIndicator(
-            color = Gold,
-            modifier = Modifier.size(22.dp),
-            strokeWidth = 2.dp
-        )
-    }
-}
-
-@Composable
 fun SetupScreen(viewModel: MainViewModel) {
     var passphrase by remember { mutableStateOf("") }
     var confirm by remember { mutableStateOf("") }
@@ -860,7 +928,7 @@ fun EncryptPanel(
 ) {
     var message by remember { mutableStateOf("") }
     var output by remember { mutableStateOf<String?>(null) }
-    var loading by remember { mutableStateOf(false) }
+    var isProcessing by remember { mutableStateOf(false) }
 
     val scope = rememberCoroutineScope()
 
@@ -900,44 +968,31 @@ fun EncryptPanel(
             Spacer(Modifier.height(12.dp))
 
             GoldButton(
-                text = if (loading) "Encrypting..." else "Encrypt",
-                enabled = message.isNotEmpty() && !loading,
+                text = "Encrypt",
+                enabled = message.isNotEmpty() && !isProcessing,
                 onClick = {
                     scope.launch {
-                        loading = true
-
+                        isProcessing = true
                         try {
                             val token = withContext(Dispatchers.IO) {
                                 viewModel.withPassphrase { pass ->
                                     CryptoEngine.encryptSecure(message, pass)
                                 }
                             }
-
                             output = token
                             showMessage("Encryption complete")
                         } catch (e: OutOfMemoryError) {
-                            showMessage("Device ran out of memory during encryption.")
+                            showMessage("Device OS memory limit reached.")
                         } catch (e: CryptoException) {
                             showMessage(e.message ?: "Encryption failed")
                         } catch (e: Exception) {
                             showMessage("Unexpected error")
                         } finally {
-                            loading = false
+                            isProcessing = false
                         }
                     }
                 }
             )
-
-            AnimatedVisibility(
-                visible = loading,
-                enter = fadeIn(tween(250)),
-                exit = fadeOut(tween(250))
-            ) {
-                Column {
-                    Spacer(Modifier.height(12.dp))
-                    PremiumLoader()
-                }
-            }
 
             AnimatedVisibility(
                 visible = output != null,
@@ -959,6 +1014,8 @@ fun EncryptPanel(
             }
         }
     }
+    
+    PremiumProcessingOverlay(isVisible = isProcessing, mode = "Encrypt")
 }
 
 @Composable
@@ -969,7 +1026,7 @@ fun DecryptPanel(
 ) {
     var token by remember { mutableStateOf("") }
     var output by remember { mutableStateOf<String?>(null) }
-    var loading by remember { mutableStateOf(false) }
+    var isProcessing by remember { mutableStateOf(false) }
 
     val scope = rememberCoroutineScope()
 
@@ -1009,44 +1066,31 @@ fun DecryptPanel(
             Spacer(Modifier.height(12.dp))
 
             GoldButton(
-                text = if (loading) "Decrypting..." else "Decrypt",
-                enabled = token.isNotBlank() && !loading,
+                text = "Decrypt",
+                enabled = token.isNotBlank() && !isProcessing,
                 onClick = {
                     scope.launch {
-                        loading = true
-
+                        isProcessing = true
                         try {
                             val plaintext = withContext(Dispatchers.IO) {
                                 viewModel.withPassphrase { pass ->
                                     CryptoEngine.decryptAny(token, pass)
                                 }
                             }
-
                             output = plaintext
                             showMessage("Decryption complete")
                         } catch (e: OutOfMemoryError) {
-                            showMessage("Not enough memory to decrypt this legacy token.")
+                            showMessage("Device OS memory limit reached.")
                         } catch (e: CryptoException) {
                             showMessage(e.message ?: "Invalid passphrase or corrupted data")
                         } catch (e: Exception) {
                             showMessage("Unexpected error")
                         } finally {
-                            loading = false
+                            isProcessing = false
                         }
                     }
                 }
             )
-
-            AnimatedVisibility(
-                visible = loading,
-                enter = fadeIn(tween(250)),
-                exit = fadeOut(tween(250))
-            ) {
-                Column {
-                    Spacer(Modifier.height(12.dp))
-                    PremiumLoader()
-                }
-            }
 
             AnimatedVisibility(
                 visible = output != null,
@@ -1068,4 +1112,6 @@ fun DecryptPanel(
             }
         }
     }
+    
+    PremiumProcessingOverlay(isVisible = isProcessing, mode = "Decrypt")
 }
