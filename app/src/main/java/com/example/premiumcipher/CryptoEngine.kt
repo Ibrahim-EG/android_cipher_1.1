@@ -1,7 +1,6 @@
 package com.example.premiumcipher
 
 import android.util.Base64
-import org.spongycastle.crypto.generators.SCrypt
 import java.io.ByteArrayOutputStream
 import java.nio.charset.StandardCharsets
 import java.security.GeneralSecurityException
@@ -26,9 +25,7 @@ object CryptoEngine {
     private const val GCM_TAG_BITS = 128
 
     private const val LEGACY_SCRYPT_N = 524288
-    
-    // RESTORED TO 512MB SECURITY LEVEL
-    private const val SECURE_SCRYPT_N = 524288 
+    private const val SECURE_SCRYPT_N = 524288
     private const val SCRYPT_R = 8
     private const val SCRYPT_P = 1
 
@@ -120,8 +117,6 @@ object CryptoEngine {
             throw CryptoException("Invalid passphrase or corrupted data.", e)
         } catch (e: IllegalArgumentException) {
             throw CryptoException("Malformed token.", e)
-        } catch (e: OutOfMemoryError) {
-            throw CryptoException("Device does not have enough memory for this token.", e)
         }
     }
 
@@ -214,7 +209,8 @@ object CryptoEngine {
         val passBytes = normalized.toByteArray(UTF_8)
 
         val material = try {
-            SCrypt.generate(passBytes, salt, SECURE_SCRYPT_N, SCRYPT_R, SCRYPT_P, 64)
+            NativeScrypt.scryptNative(passBytes, salt, SECURE_SCRYPT_N.toLong(), SCRYPT_R, SCRYPT_P, 64)
+                ?: throw CryptoException("Native Scrypt engine failed.")
         } finally {
             passBytes.fill(0)
         }
@@ -230,7 +226,8 @@ object CryptoEngine {
         val passBytes = passphrase.toByteArray(UTF_8)
 
         return try {
-            SCrypt.generate(passBytes, salt, LEGACY_SCRYPT_N, SCRYPT_R, SCRYPT_P, 32)
+            NativeScrypt.scryptNative(passBytes, salt, LEGACY_SCRYPT_N.toLong(), SCRYPT_R, SCRYPT_P, 32)
+                ?: throw CryptoException("Native Scrypt engine failed.")
         } finally {
             passBytes.fill(0)
         }
