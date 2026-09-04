@@ -25,18 +25,10 @@ object CryptoEngine {
     private const val NONCE_LEN = 12
     private const val GCM_TAG_BITS = 128
 
-    /*
-     * Legacy compatibility uses the old Python script's strong but heavy parameters.
-     * This may require a lot of memory on old devices.
-     */
     private const val LEGACY_SCRYPT_N = 524288
-
-    /*
-     * Secure mobile default.
-     * 2^16 with r=8 is about 64 MiB.
-     * This is much safer than a weak verifier while remaining usable on older phones.
-     */
-    private const val SECURE_SCRYPT_N = 65536
+    
+    // RESTORED TO 512MB SECURITY LEVEL
+    private const val SECURE_SCRYPT_N = 524288 
     private const val SCRYPT_R = 8
     private const val SCRYPT_P = 1
 
@@ -49,10 +41,6 @@ object CryptoEngine {
     fun passphraseLength(passphrase: String): Int {
         val normalized = normalizePassphrase(passphrase)
         return Character.codePointCount(normalized, 0, normalized.length)
-    }
-
-    fun passphraseMeetsPolicy(passphrase: String): Boolean {
-        return passphraseLength(passphrase) >= 12
     }
 
     fun passphraseEquals(a: String, b: String): Boolean {
@@ -187,14 +175,6 @@ object CryptoEngine {
         val nonce = b64Decode(parts[1])
         val ciphertext = b64Decode(parts[2])
 
-        /*
-         * parts[3] is the legacy weak passphrase verifier.
-         * It is intentionally ignored.
-         *
-         * This preserves decryption compatibility while avoiding reliance
-         * on the weak verifier.
-         */
-
         val key = deriveLegacyKey(passphrase, salt)
 
         return try {
@@ -247,10 +227,6 @@ object CryptoEngine {
     }
 
     private fun deriveLegacyKey(passphrase: String, salt: ByteArray): ByteArray {
-        /*
-         * Legacy compatibility:
-         * the original Python script did not apply Unicode normalization.
-         */
         val passBytes = passphrase.toByteArray(UTF_8)
 
         return try {
