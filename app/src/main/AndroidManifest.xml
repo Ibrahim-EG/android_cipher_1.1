@@ -3,10 +3,13 @@
 
     <application
         android:allowBackup="false"
+        android:largeHeap="true"
         android:label="@string/app_name"
         android:icon="@drawable/app_logo"
         android:supportsRtl="true"
         android:theme="@android:style/Theme.Material.NoActionBar">
+
+        <meta-data android:name="developer" android:value="Ibrahim Khaled" />
 
         <activity
             android:name=".MainActivity"
