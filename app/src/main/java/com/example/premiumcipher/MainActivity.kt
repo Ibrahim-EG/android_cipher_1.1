@@ -11,6 +11,7 @@ import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.shrinkVertically
+import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateDpAsState
@@ -20,6 +21,7 @@ import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -78,7 +80,9 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shadow
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalClipboardManager
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontFamily
@@ -298,129 +302,34 @@ fun PremiumLogo(size: Dp = 100.dp) {
         label = "logoGlow"
     )
 
-    val angle by transition.animateFloat(
-        initialValue = 0f,
-        targetValue = 360f,
+    val scale by transition.animateFloat(
+        initialValue = 1f,
+        targetValue = 1.04f,
         animationSpec = infiniteRepeatable(
-            animation = tween(durationMillis = 6500, easing = LinearEasing),
-            repeatMode = RepeatMode.Restart
-        ),
-        label = "logoAngle"
-    )
-
-    val shine by transition.animateFloat(
-        initialValue = -0.5f,
-        targetValue = 1.5f,
-        animationSpec = infiniteRepeatable(
-            animation = tween(durationMillis = 3600, easing = LinearEasing),
+            animation = tween(durationMillis = 2400, easing = LinearEasing),
             repeatMode = RepeatMode.Reverse
         ),
-        label = "logoShine"
+        label = "logoBreath"
     )
 
-    Box(
+    Image(
+        painter = painterResource(id = R.drawable.app_logo),
+        contentDescription = "Premium Cipher logo",
+        contentScale = ContentScale.Crop,
         modifier = Modifier
             .size(size)
+            .graphicsLayer {
+                scaleX = scale
+                scaleY = scale
+            }
             .shadow(
                 elevation = glow.dp,
-                shape = CircleShape,
+                shape = RoundedCornerShape(22.dp),
                 ambientColor = Gold,
                 spotColor = Gold
-            ),
-        contentAlignment = Alignment.Center
-    ) {
-        Box(
-            modifier = Modifier
-                .matchParentSize()
-                .clip(CircleShape)
-                .background(Color.Black)
-                .border(
-                    width = 3.dp,
-                    brush = Brush.linearGradient(
-                        listOf(
-                            GoldDim,
-                            Gold,
-                            Color(0xFFFFF7CC)
-                        )
-                    ),
-                    shape = CircleShape
-                )
-        )
-
-        Box(
-            modifier = Modifier
-                .matchParentSize()
-                .clip(CircleShape)
-                .graphicsLayer {
-                    rotationZ = angle
-                }
-                .background(
-                    Brush.sweepGradient(
-                        listOf(
-                            Color.Transparent,
-                            Gold.copy(alpha = 0.22f),
-                            Color.Transparent,
-                            Color(0x18FFFFFF),
-                            Color.Transparent
-                        )
-                    )
-                )
-        )
-
-        Box(
-            modifier = Modifier
-                .matchParentSize()
-                .drawWithContent {
-                    drawContent()
-
-                    val bandWidth = size.width * 0.28f
-                    val start = Offset(size.width * shine - bandWidth, -size.height * 0.1f)
-                    val end = Offset(size.width * shine, size.height * 1.1f)
-
-                    drawRect(
-                        brush = Brush.linearGradient(
-                            colors = listOf(
-                                Color.Transparent,
-                                Color(0x22FFFFFF),
-                                Color.Transparent
-                            ),
-                            start = start,
-                            end = end
-                        )
-                    )
-                }
-        )
-
-        Box(
-            modifier = Modifier
-                .matchParentSize()
-                .clip(CircleShape)
-                .border(
-                    width = 1.dp,
-                    color = Color.White.copy(alpha = 0.06f),
-                    shape = CircleShape
-                )
-        )
-
-        Text(
-            text = "$",
-            fontSize = (size.value * 0.42f).sp,
-            fontWeight = FontWeight.ExtraBold,
-            style = TextStyle(
-                brush = Brush.linearGradient(
-                    listOf(
-                        Silver,
-                        Color(0xFF9E9E9E),
-                        Silver
-                    )
-                ),
-                shadow = Shadow(
-                    color = Gold.copy(alpha = 0.35f),
-                    blurRadius = 18f
-                )
             )
-        )
-    }
+            .clip(RoundedCornerShape(22.dp))
+    )
 }
 
 @Composable
@@ -663,7 +572,7 @@ fun SetupScreen(viewModel: MainViewModel) {
     var error by remember { mutableStateOf<String?>(null) }
 
     val scope = rememberCoroutineScope()
-    val shake = remember { androidx.compose.animation.core.Animatable(0f) }
+    val shake = remember { Animatable(0f) }
 
     fun triggerShake() {
         scope.launch {
