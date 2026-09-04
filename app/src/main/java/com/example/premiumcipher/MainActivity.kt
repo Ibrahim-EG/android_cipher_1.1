@@ -86,6 +86,8 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.AnnotatedString
+import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
@@ -471,7 +473,7 @@ fun GoldPasswordField(
             ),
         singleLine = true,
         visualTransformation = if (show) VisualTransformation.None else PasswordVisualTransformation(),
-        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password), // Forces secure keyboard mode
+        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
         shape = RoundedCornerShape(14.dp),
         interactionSource = interactionSource,
         colors = OutlinedTextFieldDefaults.colors(
@@ -574,7 +576,7 @@ fun SetupScreen(viewModel: MainViewModel) {
 
     val scope = rememberCoroutineScope()
     val shake = remember { Animatable(0f) }
-    
+
     val isShort = CryptoEngine.passphraseLength(passphrase) < 12
 
     fun triggerShake() {
@@ -692,7 +694,7 @@ fun SetupScreen(viewModel: MainViewModel) {
                     )
                 }
             }
-            
+
             Spacer(Modifier.height(24.dp))
             Text(
                 text = "Developed by Ibrahim Khaled",
@@ -836,7 +838,7 @@ fun MainScreen(viewModel: MainViewModel) {
                         }
                     }
                 }
-                
+
                 Spacer(Modifier.height(24.dp))
                 Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
                     Text(
