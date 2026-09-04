@@ -11,8 +11,19 @@ android {
         applicationId = "com.example.premiumcipher"
         minSdk = 24
         targetSdk = 34
-        versionCode = 1
-        versionName = "1.0"
+        versionCode = 2
+        versionName = "2.0-native"
+
+        ndk {
+            abiFilters += listOf("armeabi-v7a", "arm64-v8a", "x86", "x86_64")
+        }
+    }
+
+    externalNativeBuild {
+        cmake {
+            path = file("src/main/cpp/CMakeLists.txt")
+            version = "3.22.1"
+        }
     }
 
     buildTypes {
@@ -62,9 +73,6 @@ dependencies {
     implementation("androidx.compose.ui:ui-tooling-preview")
     implementation("androidx.compose.material3:material3")
     implementation("androidx.compose.material:material-icons-extended")
-
-    // SpongyCastle provides SCrypt in a package that avoids Android platform class conflicts.
-    implementation("com.madgag.spongycastle:core:1.58.0.0")
 
     debugImplementation("androidx.compose.ui:ui-tooling")
 }
